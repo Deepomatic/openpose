@@ -104,11 +104,14 @@ namespace op
                 const auto sourceNumOffset = channels * sourceChannelOffset;
                 for (auto c = 0 ; c < channels ; c++)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                     resizeKernelAndMerge<<<numBlocks, threadsPerBlock>>>(targetPtr + c * targetChannelOffset,
                                                                          sourcePtr + c * sourceChannelOffset, sourceNumOffset,
                                                                          num, scaleRatiosGpuPtr, sourceWidth, sourceHeight, targetWidth, targetHeight);
             }*/
 =======
+=======
+>>>>>>> Stashed changes
                 {
                     cv::gpu::GpuMat target (targetHeight, targetWidth, CV_32F, (void*)(targetPtr + c * targetChannelOffset));
                     cv::gpu::multiply(target, 0.f, target);
