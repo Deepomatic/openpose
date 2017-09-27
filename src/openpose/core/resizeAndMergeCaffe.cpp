@@ -46,6 +46,7 @@ namespace op
             // Array sizes
             mTopSize = std::array<int, 4>{topBlob->shape(0), topBlob->shape(1), topBlob->shape(2), topBlob->shape(3)};
             mBottomSize = std::array<int, 4>{bottomBlob->shape(0), bottomBlob->shape(1), bottomBlob->shape(2), bottomBlob->shape(3)};
+            std::cout << "Src layer shape: " << bottomBlob-> shape(0) << " " << bottomBlob-> shape(1) << " " << bottomBlob-> shape(2) << " " << bottomBlob-> shape(3) << std::endl; 
         }
         catch (const std::exception& e)
         {
@@ -72,6 +73,8 @@ namespace op
         try
         {
             resizeAndMergeCpu(top.at(0)->mutable_cpu_data(), bottom.at(0)->cpu_data(), mTopSize, mBottomSize, mScaleRatios);
+            for (auto scaleRatio : mScaleRatios)
+              std::cout << "SCALE RATIO: " << scaleRatio << std::endl;
         }
         catch (const std::exception& e)
         {
@@ -85,6 +88,9 @@ namespace op
         try
         {
             resizeAndMergeGpu(top.at(0)->mutable_gpu_data(), bottom.at(0)->gpu_data(), mTopSize, mBottomSize, mScaleRatios);
+            for (auto scaleRatio : mScaleRatios)
+              std::cout << "SCALE RATIO: " << scaleRatio << std::endl;
+        
         }
         catch (const std::exception& e)
         {

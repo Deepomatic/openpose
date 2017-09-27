@@ -24,15 +24,17 @@ namespace op
             // Perform resize + merging
             const auto sourceNumOffset = channels * sourceChannelOffset;
             for (auto c = 0 ; c < channels ; c++) {
-                cv::Mat target (targetHeight, targetWidth, CV_32F, (void*)(targetPtr + c * targetChannelOffset));
-                cv::multiply(target, 0.f, target);
                 cv::Mat t;
                 for (auto n = 0; n < num; n++) {
                     cv::Mat source(std::rint(sourceHeight * scaleRatios[n]), std::rint(sourceWidth * scaleRatios[n]), CV_32F, (void*)(sourcePtr + c * sourceChannelOffset + n * sourceNumOffset));
-                    cv::resize(source, t, cv::Size(targetWidth, targetHeight), 0., 0., cv::INTER_CUBIC);
-                    cv::add(target, t, target);
+                    if (n==0)
+                        t = source;
+                    else
+                        cv::add(t, source, t);
                 }
-                cv::divide(target, (float)num, target);
+                cv::divide(t, (float)num, t);
+                cv::Mat target(targetHeight, targetWidth, CV_32F, (void*)(targetPtr + c * targetChannelOffset));
+                cv::resize(t, target, cv::Size(targetWidth, targetHeight), 0., 0., cv::INTER_LINEAR);
             }
         }
         catch (const std::exception& e)

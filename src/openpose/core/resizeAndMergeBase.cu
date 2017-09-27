@@ -1,6 +1,9 @@
 #include <openpose/utilities/cuda.hpp>
 #include <openpose/utilities/cuda.hu>
-#include <openpose/core/resizeAndMergeBase.hpp>
+#include <openpose/core/resizeAndMergeBase.hpp> 
+#include <opencv2/gpu/gpu.hpp>
+#include <opencv2/core/core.hpp>
+#include <math.h>
 
 namespace op
 {
@@ -20,6 +23,7 @@ namespace op
             targetPtr[y*targetWidth+x] = bicubicInterpolate(sourcePtr, xSource, ySource, sourceWidth, sourceHeight, sourceWidth);
         }
     }
+
 
     template <typename T>
     __global__ void resizeKernelAndMerge(T* targetPtr, const T* const sourcePtr, const int sourceNumOffset, const int num, const T* scaleRatios,
@@ -99,10 +103,28 @@ namespace op
                 // Perform resize + merging
                 const auto sourceNumOffset = channels * sourceChannelOffset;
                 for (auto c = 0 ; c < channels ; c++)
+<<<<<<< Updated upstream
                     resizeKernelAndMerge<<<numBlocks, threadsPerBlock>>>(targetPtr + c * targetChannelOffset,
                                                                          sourcePtr + c * sourceChannelOffset, sourceNumOffset,
                                                                          num, scaleRatiosGpuPtr, sourceWidth, sourceHeight, targetWidth, targetHeight);
             }*/
+=======
+                {
+                    cv::gpu::GpuMat target (targetHeight, targetWidth, CV_32F, (void*)(targetPtr + c * targetChannelOffset));
+                    cv::gpu::multiply(target, 0.f, target);
+                    cv::gpu::GpuMat t;
+                    for (auto n = 0; n < num; n++)
+                    {
+                        cv::gpu::GpuMat source((int)(sourceHeight * scaleRatios[n]), (int)(sourceWidth * scaleRatios[n]), CV_32F, (void*)(sourcePtr + c * sourceChannelOffset + n * sourceNumOffset));
+                        cv::gpu::resize(source, t, cv::Size(targetWidth, targetHeight), 0., 0., cv::INTER_CUBIC);
+                        cv::gpu::add(target, t, target);
+                    }
+                    cv::gpu::divide(target, (float)num, target);
+                }
+                // Free memory
+                cudaFree(scaleRatiosGpuPtr);
+            }
+>>>>>>> Stashed changes
 
             cudaCheck(__LINE__, __FUNCTION__, __FILE__);
         }
