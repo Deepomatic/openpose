@@ -133,7 +133,13 @@ namespace op
             spBodyPartConnectorTensorRT->setInterThreshold((float)get(PoseProperty::ConnectInterThreshold));
             spBodyPartConnectorTensorRT->setMinSubsetCnt((int)get(PoseProperty::ConnectMinSubsetCnt));
             spBodyPartConnectorTensorRT->setMinSubsetScore((float)get(PoseProperty::ConnectMinSubsetScore));
+            timeNow("spBodyPartConnectorTensorRT construction");
+
             // GPU version not implemented yet
+            caffe::Blob<float>* test1 = spHeatMapsBlob.get();
+            timeNow("Get HeatMaps");
+            caffe::Blob<float>* test2 = spPeaksBlob.get();
+            timeNow("Get peaks");
             spBodyPartConnectorTensorRT->Forward_cpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, mPoseKeypoints);
             // spBodyPartConnectorTensorRT->Forward_gpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, {spPoseBlob.get()}, mPoseKeypoints);
             timeNow("Connect Body Parts");

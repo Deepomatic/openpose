@@ -3,6 +3,22 @@
 #include <openpose/pose/poseParameters.hpp>
 #include <openpose/pose/bodyPartConnectorBase.hpp>
 
+typedef std::vector<std::pair<std::string, std::chrono::high_resolution_clock::time_point>> OpTimings;
+
+
+inline void timeNow(OpTimings &timings, const std::string& label){
+    const auto now = std::chrono::high_resolution_clock::now();
+    const auto timing = std::make_pair(label, now);
+    timings.push_back(timing);
+}
+
+inline std::string timeDiffToString(const std::chrono::high_resolution_clock::time_point& t1,
+                                const std::chrono::high_resolution_clock::time_point& t2 ) {
+    return std::to_string((double)std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t2).count() * 1e3) + " ms";
+}
+
+
+
 namespace op
 {
     template <typename T>
@@ -10,8 +26,10 @@ namespace op
                              const Point<int>& heatMapSize, const int maxPeaks, const int interMinAboveThreshold,
                              const T interThreshold, const int minSubsetCnt, const T minSubsetScore, const T scaleFactor)
     {
+        OpTimings timings;
         try
         {
+            timeNow(timings, "Start");
             // Parts Connection
             const auto& bodyPartPairs = POSE_BODY_PART_PAIRS[(int)poseModel];
             const auto& mapIdx = POSE_MAP_IDX[(int)poseModel];
@@ -315,6 +333,11 @@ namespace op
                         poseKeypoints[baseOffset + 2] = 0.f;
                     }
                 }
+            }
+            timeNow(timings, "BODYPARTCONNECTOR - End");
+            for(OpTimings::iterator timing = timings.begin()+1; timing != timings.end(); ++timing) {
+              const auto log_time = (*timing).first + " - " + timeDiffToString((*timing).second, (*(timing-1)).second);
+              op::log(log_time, op::Priority::High);
             }
         }
         catch (const std::exception& e)
