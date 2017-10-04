@@ -8,17 +8,22 @@
 #include <openpose/utilities/openCv.hpp>
 #include <openpose/pose/poseExtractorTensorRT.hpp>
 
+
+//#define TIMING_LOGS
+
 typedef std::vector<std::pair<std::string, std::chrono::high_resolution_clock::time_point>> OpTimings;
 
 static OpTimings timings;
 
-static void timeNow(const std::string& label){
+inline void timeNow(const std::string& label){
+#ifdef TIMING_LOGS
     const auto now = std::chrono::high_resolution_clock::now();
     const auto timing = std::make_pair(label, now);
     timings.push_back(timing);
+#endif
 }
 
-static std::string timeDiffToString(const std::chrono::high_resolution_clock::time_point& t1,
+inline std::string timeDiffToString(const std::chrono::high_resolution_clock::time_point& t1,
                                 const std::chrono::high_resolution_clock::time_point& t2 ) {
     return std::to_string((double)std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t2).count() * 1e3) + " ms";
 }
@@ -137,7 +142,8 @@ namespace op
             spBodyPartConnectorTensorRT->Forward_cpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, mPoseKeypoints);
             // spBodyPartConnectorTensorRT->Forward_gpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, {spPoseBlob.get()}, mPoseKeypoints);
             timeNow("Connect Body Parts");
-             
+
+#ifdef TIMING_LOGS 
             const auto totalTimeSec = timeDiffToString(timings.back().second, timings.front().second);
             const auto message = "Pose estimation successfully finished. Total time: " + totalTimeSec + " seconds.";
             op::log(message, op::Priority::High);
@@ -146,6 +152,7 @@ namespace op
               const auto log_time = (*timing).first + " - " + timeDiffToString((*timing).second, (*(timing-1)).second);
               op::log(log_time, op::Priority::High);
             }
+#endif
         }
         catch (const std::exception& e)
         {
