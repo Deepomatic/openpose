@@ -62,8 +62,8 @@ namespace op
                     for (auto& poseExtractor : mPoseExtractors)
                         poseExtractor->switchFashionDemo();
                     
-                    for (auto& poseRenderer : mPoseRenderers)
-                        poseRenderer->switchFashionDemo();
+                    //for (auto& poseRenderer : mPoseRenderers)
+                        //poseRenderer->switchFashionDemo();
                 }
                 else if (castedKey=='m')
                 {

@@ -39,7 +39,7 @@ namespace op
 
         void increase(const PoseProperty property, const double value);
         
-        void switchFashionDemo(void) { mFashionDemo = !mFashionDemo; };
+        void switchFashionDemo(void) { mFashionDemo = !mFashionDemo; }
 
     protected:
         const PoseModel mPoseModel;
