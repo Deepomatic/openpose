@@ -47,7 +47,8 @@ namespace op
         mNetOutputSize{netOutputSize},
         mOutputSize{outputSize},
         mHeatMapTypes{heatMapTypes},
-        mHeatMapScaleMode{heatMapScale}
+        mHeatMapScaleMode{heatMapScale},
+        mFashionDemo{false}
     {
         try
         {

@@ -38,6 +38,8 @@ namespace op
         void set(const PoseProperty property, const double value);
 
         void increase(const PoseProperty property, const double value);
+        
+        void switchFashionDemo(void) { mFashionDemo = !mFashionDemo; };
 
     protected:
         const PoseModel mPoseModel;
@@ -45,6 +47,7 @@ namespace op
         const Point<int> mOutputSize;
         Array<float> mPoseKeypoints;
         float mScaleNetToOutput;
+        bool mFashionDemo;
 
         void checkThread() const;
 

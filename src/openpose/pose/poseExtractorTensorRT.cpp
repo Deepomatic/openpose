@@ -99,60 +99,67 @@ namespace op
     {
         try
         {
-            // Security checks
-            if (inputNetData.empty())
-                error("Empty inputNetData.", __LINE__, __FUNCTION__, __FILE__);
-            timeNow("Start");
-            // 1. TensorRT deep network
-            spNet->forwardPass(inputNetData.getConstPtr());
-            timeNow("TensorRT forward");
-            // 2. Resize heat maps + merge different scales
-            spResizeAndMergeTensorRT->setScaleRatios(scaleRatios);
-            timeNow("SpResizeAndMergeTensorRT");
-            #ifndef CPU_ONLY
-                spResizeAndMergeTensorRT->Forward_gpu({spTensorRTNetOutputBlob.get()}, {spHeatMapsBlob.get()});       // ~5ms
-                timeNow("RaM forward_gpu");
-                cudaCheck(__LINE__, __FUNCTION__, __FILE__);
-                timeNow("CudaCheck");
-            #else
-                error("ResizeAndMergeTensorRT CPU version not implemented yet.", __LINE__, __FUNCTION__, __FILE__);
-            #endif
-            timeNow("Resize heat Maps");
-            // 3. Get peaks by Non-Maximum Suppression
-            spNmsTensorRT->setThreshold((float)get(PoseProperty::NMSThreshold));
-            #ifndef CPU_ONLY
-                spNmsTensorRT->Forward_gpu({spHeatMapsBlob.get()}, {spPeaksBlob.get()});                           // ~2ms
-                cudaCheck(__LINE__, __FUNCTION__, __FILE__);
-            #else
-                error("NmsTensorRT CPU version not implemented yet.", __LINE__, __FUNCTION__, __FILE__);
-            #endif
-            timeNow("Peaks by nms");
-            // Get scale net to output
-            const auto scaleProducerToNetInput = resizeGetScaleFactor(inputDataSize, mNetOutputSize);
-            const Point<int> netSize{intRound(scaleProducerToNetInput*inputDataSize.x), intRound(scaleProducerToNetInput*inputDataSize.y)};
-            mScaleNetToOutput = {(float)resizeGetScaleFactor(netSize, mOutputSize)};
-            timeNow("Scale net to output");
-            // 4. Connecting body parts
-            spBodyPartConnectorTensorRT->setScaleNetToOutput(mScaleNetToOutput);
-            spBodyPartConnectorTensorRT->setInterMinAboveThreshold((int)get(PoseProperty::ConnectInterMinAboveThreshold));
-            spBodyPartConnectorTensorRT->setInterThreshold((float)get(PoseProperty::ConnectInterThreshold));
-            spBodyPartConnectorTensorRT->setMinSubsetCnt((int)get(PoseProperty::ConnectMinSubsetCnt));
-            spBodyPartConnectorTensorRT->setMinSubsetScore((float)get(PoseProperty::ConnectMinSubsetScore));
-            // GPU version not implemented yet
-            spBodyPartConnectorTensorRT->Forward_cpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, mPoseKeypoints);
-            // spBodyPartConnectorTensorRT->Forward_gpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, {spPoseBlob.get()}, mPoseKeypoints);
-            timeNow("Connect Body Parts");
+            if (!mFashionDemo)
+            {
+                // Security checks
+                if (inputNetData.empty())
+                    error("Empty inputNetData.", __LINE__, __FUNCTION__, __FILE__);
+                timeNow("Start");
+                // 1. TensorRT deep network
+                spNet->forwardPass(inputNetData.getConstPtr());
+                timeNow("TensorRT forward");
+                // 2. Resize heat maps + merge different scales
+                spResizeAndMergeTensorRT->setScaleRatios(scaleRatios);
+                timeNow("SpResizeAndMergeTensorRT");
+                #ifndef CPU_ONLY
+                    spResizeAndMergeTensorRT->Forward_gpu({spTensorRTNetOutputBlob.get()}, {spHeatMapsBlob.get()});       // ~5ms
+                    timeNow("RaM forward_gpu");
+                    cudaCheck(__LINE__, __FUNCTION__, __FILE__);
+                    timeNow("CudaCheck");
+                #else
+                    error("ResizeAndMergeTensorRT CPU version not implemented yet.", __LINE__, __FUNCTION__, __FILE__);
+                #endif
+                timeNow("Resize heat Maps");
+                // 3. Get peaks by Non-Maximum Suppression
+                spNmsTensorRT->setThreshold((float)get(PoseProperty::NMSThreshold));
+                #ifndef CPU_ONLY
+                    spNmsTensorRT->Forward_gpu({spHeatMapsBlob.get()}, {spPeaksBlob.get()});                           // ~2ms
+                    cudaCheck(__LINE__, __FUNCTION__, __FILE__);
+                #else
+                    error("NmsTensorRT CPU version not implemented yet.", __LINE__, __FUNCTION__, __FILE__);
+                #endif
+                timeNow("Peaks by nms");
+                // Get scale net to output
+                const auto scaleProducerToNetInput = resizeGetScaleFactor(inputDataSize, mNetOutputSize);
+                const Point<int> netSize{intRound(scaleProducerToNetInput*inputDataSize.x), intRound(scaleProducerToNetInput*inputDataSize.y)};
+                mScaleNetToOutput = {(float)resizeGetScaleFactor(netSize, mOutputSize)};
+                timeNow("Scale net to output");
+                // 4. Connecting body parts
+                spBodyPartConnectorTensorRT->setScaleNetToOutput(mScaleNetToOutput);
+                spBodyPartConnectorTensorRT->setInterMinAboveThreshold((int)get(PoseProperty::ConnectInterMinAboveThreshold));
+                spBodyPartConnectorTensorRT->setInterThreshold((float)get(PoseProperty::ConnectInterThreshold));
+                spBodyPartConnectorTensorRT->setMinSubsetCnt((int)get(PoseProperty::ConnectMinSubsetCnt));
+                spBodyPartConnectorTensorRT->setMinSubsetScore((float)get(PoseProperty::ConnectMinSubsetScore));
+                // GPU version not implemented yet
+                spBodyPartConnectorTensorRT->Forward_cpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, mPoseKeypoints);
+                // spBodyPartConnectorTensorRT->Forward_gpu({spHeatMapsBlob.get(), spPeaksBlob.get()}, {spPoseBlob.get()}, mPoseKeypoints);
+                timeNow("Connect Body Parts");
 
-#ifdef TIMING_LOGS 
-            const auto totalTimeSec = timeDiffToString(timings.back().second, timings.front().second);
-            const auto message = "Pose estimation successfully finished. Total time: " + totalTimeSec + " seconds.";
-            op::log(message, op::Priority::High);
+    #ifdef TIMING_LOGS 
+                const auto totalTimeSec = timeDiffToString(timings.back().second, timings.front().second);
+                const auto message = "Pose estimation successfully finished. Total time: " + totalTimeSec + " seconds.";
+                op::log(message, op::Priority::High);
 
-            for(OpTimings::iterator timing = timings.begin()+1; timing != timings.end(); ++timing) {
-              const auto log_time = (*timing).first + " - " + timeDiffToString((*timing).second, (*(timing-1)).second);
-              op::log(log_time, op::Priority::High);
+                for(OpTimings::iterator timing = timings.begin()+1; timing != timings.end(); ++timing) {
+                  const auto log_time = (*timing).first + " - " + timeDiffToString((*timing).second, (*(timing-1)).second);
+                  op::log(log_time, op::Priority::High);
+                }
+    #endif
             }
-#endif
+            else // mFashionDemo == true
+            {
+                
+            }
         }
         catch (const std::exception& e)
         {

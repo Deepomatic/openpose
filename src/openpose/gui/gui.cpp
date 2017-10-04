@@ -56,10 +56,15 @@ namespace op
                 else if (castedKey=='f')
                     mFrameDisplayer.switchGuiDisplayMode();
                 // ------------------------- Producer-Related ------------------------- //
-                // Pause
+                // Switch to fashion demo
                 else if (castedKey==' ')
-                    guiPaused = !guiPaused;
-                // Fake pause
+                {
+                    for (auto& poseExtractor : mPoseExtractors)
+                        poseExtractor->switchFashionDemo();
+                    
+                    for (auto& poseRenderer : mPoseRenderers)
+                        poseRenderer->switchFashionDemo();
+                }
                 else if (castedKey=='m')
                 {
                     if (spVideoSeek != nullptr)
