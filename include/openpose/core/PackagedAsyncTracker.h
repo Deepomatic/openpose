@@ -87,8 +87,6 @@ public:
                 if (frame.empty()) {
                     break;
                 }
-                //cv::resize(frame, frame, cv::Size(_width, frame.rows * _width / frame.cols), 0, 0, cv::INTER_CUBIC);
-                cv::resize(frame, frame, cv::Size(128, 96), 0, 0, cv::INTER_CUBIC);
                 std::list<tf_tracking::Recognition> objects = getDetections(frame);
                 {
                     std::lock_guard<std::mutex> lock(_mtx);

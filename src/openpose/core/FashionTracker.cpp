@@ -12,7 +12,7 @@
 #include <memory>
 #include <cstring>
 #include <algorithm>
-
+#include <opencv2/opencv.hpp>
 #include <openpose/core/FashionTracker.h>
 
 using namespace nvinfer1;
@@ -482,7 +482,7 @@ ICudaEngine* FashionTracker::createEngine()
 }
                     
                     
-FashionTracker::FashionTracker() : PackagedAsyncTracker(800, true),
+FashionTracker::FashionTracker() : PackagedAsyncTracker(INPUT_W, true),
                     mCaffeProto("models/fashion/deploy.prototxt"),
                     mCaffeTrainedModel("models/fashion/snapshot.caffemodel")
 {
@@ -497,6 +497,35 @@ FashionTracker::~FashionTracker()
     if (cudaEngine)
         cudaEngine->destroy();
 }
+
+static cv::Mat imgTo4DMat(const cv::Mat &img)
+{
+    const int sizes[] = { 1, img.channels(), img.rows, img.cols };
+    
+    cv::Mat big_mat(4, sizes, CV_MAKETYPE(img.depth(), 1), cv::Scalar(0));
+
+    // extract each channels in a single plane and store it in a 3D mat
+    
+    std::vector<cv::Mat> channels;
+    cv::split(img, channels);
+
+    std::vector<cv::Range> ranges(4, cv::Range::all());
+    ranges[0] = cv::Range(0, 1);
+
+    for (int i = 0; i < img.channels(); ++i) {
+        ranges[1] = cv::Range(i, i + 1);
+
+        // this will be 1x1xHxW
+        cv::Mat plane4D = big_mat(&ranges[0]);
+
+        // we need a 2D mat so that the copyTo works (copying directly to the plane4D does not work)
+        cv::Mat plane2D(plane4D.size[2], plane4D.size[3], big_mat.type(), plane4D.data);
+
+        channels[i].copyTo(plane2D);
+    }
+
+    return big_mat;
+}
                     
 std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat &frame) {
     fashion_log("getDetections 0");
@@ -504,10 +533,12 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     
     cv::Scalar mean(102.9801f, 115.9465f, 122.7717f);
     cv::Mat frameResized, frameMinusMean;
-    cv::resize(frame, frameResized, cv::Size(375, 500));
+    cv::resize(frame, frameResized, cv::Size(INPUT_W, INPUT_H));
     frameResized.convertTo(frameMinusMean, CV_32FC3);
     frameMinusMean -= mean;
-    float* data = (float*)frameMinusMean.data;
+    cv::Mat caffeInput = imgTo4DMat(frameMinusMean);
+
+    float* data = (float*)caffeInput.data;
     fashion_log("getDetections 1");
     
     // host memory for outputs
@@ -570,12 +601,13 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
             for (unsigned k = 0; k < indices.size(); ++k)
             {
                 int idx = indices[k];
-                fashion_log("Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% ");
-                
+                std::cout << "Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% " << std::endl;
+               
+                const float ratio = (float)INPUT_W / (float)INPUT_H; 
                 const float x1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4];
-                const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1];
+                const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1] * ratio;
                 const float x2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 2];
-                const float y2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3];
+                const float y2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3] * ratio;
                 normalized_results.emplace_back("fashion", CLASSES[c],
                                                 scores[idx*OUTPUT_CLS_SIZE + c],
                                                 tf_tracking::BoundingBox(x1 / float(frame.cols), y1 / float(frame.rows), x2 / float(frame.cols), y2 / float(frame.rows)));

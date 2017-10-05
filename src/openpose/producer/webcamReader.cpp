@@ -1,6 +1,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <openpose/producer/webcamReader.hpp>
 #include <openpose/utilities/fastMath.hpp>
+#include <openpose/core/PackagedAsyncTracker.h>
+
+extern std::shared_ptr<PackagedAsyncTracker> tracker;
 
 namespace op
 {
@@ -125,6 +128,8 @@ namespace op
                     std::this_thread::sleep_for(std::chrono::microseconds{5});
                 }
             }
+            tracker->onFrame(cvMat);
+
             return cvMat;
 
             // Naive implementation - No flashing buffers

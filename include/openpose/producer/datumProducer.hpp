@@ -7,9 +7,6 @@
 #include <openpose/core/common.hpp>
 #include <openpose/core/datum.hpp>
 #include <openpose/producer/producer.hpp>
-#include <openpose/core/PackagedAsyncTracker.h>
-
-extern std::shared_ptr<PackagedAsyncTracker> tracker;
 
 namespace op
 {
@@ -103,8 +100,6 @@ namespace op
                 datum.name = spProducer->getFrameName();
                 datum.cvInputData = spProducer->getFrame();
                 
-                tracker->onFrame(datum.cvInputData);
-                   
                 if (datum.cvInputData.channels() != 3)
                 {
                     const std::string commonMessage{"Input images must be 3-channel BGR."};
