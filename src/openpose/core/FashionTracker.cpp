@@ -19,13 +19,23 @@ using namespace nvinfer1;
 using namespace nvcaffeparser1;
 using namespace plugin;
 
+
+//#define FASHION_LOG
+
+#ifdef FASHION_LOG
+    #define fashion_log(log) std::cout << log << std::endl;
+#else
+    #define fashion_log(log) /* log */
+#endif
+
+
 #define FASHION_CUDA_CHECK(status)												\
     {																\
 	if (status != 0)												\
 	{																\
 	    std::cout << "Cuda failure: " << cudaGetErrorString(status)	\
 		      << " at line " << __LINE__							\
-                      << std::endl;									\
+	              << std::endl;									\
 	    abort();													\
 	}																\
     }
@@ -68,7 +78,7 @@ class LoggerFashion : public ILogger
         {
                 // suppress info-level messages
                 //if (severity != Severity::kINFO)
-                        std::cout << msg << std::endl;
+                        fashion_log(msg);
         }
 } gLoggerFashion;
 
@@ -80,13 +90,13 @@ struct BBox
 
 static void doInference(IExecutionContext& context, float* inputData, float* inputImInfo, float* outputBboxPred, float* outputClsProb, float *outputRois, int batchSize)
 {
-        std::cout << "FashionTracker.cpp: doInference" << std::endl;
+        fashion_log("FashionTracker.cpp: doInference");
 	const ICudaEngine& engine = context.getEngine();
 	// input and output buffer pointers that we pass to the engine - the engine requires exactly IEngine::getNbBindings(),
 	// of these, but in this case we know that there is exactly 2 inputs and 4 outputs.
 	assert(engine.getNbBindings() == 6);
 	void* buffers[6];
-        std::cout << "FashionTracker.cpp: doInference 0" << std::endl;
+        fashion_log("FashionTracker.cpp: doInference 0");
 
 	// In order to bind the buffers, we need to know the names of the input and output tensors.
 	// note that indices are guaranteed to be less than IEngine::getNbBindings()
@@ -96,7 +106,7 @@ static void doInference(IExecutionContext& context, float* inputData, float* inp
 		outputIndex1 = engine.getBindingIndex(OUTPUT_BLOB_NAME1),
 		outputIndex2 = engine.getBindingIndex(OUTPUT_BLOB_NAME2),
 		outputIndex3 = engine.getBindingIndex(OUTPUT_BLOB_NAME3);
-        std::cout << "FashionTracker.cpp: doInference 1" << std::endl;
+        fashion_log("FashionTracker.cpp: doInference 1");
 
 
 	// create GPU buffers and a stream
@@ -109,7 +119,7 @@ static void doInference(IExecutionContext& context, float* inputData, float* inp
 
 	cudaStream_t stream;
 	FASHION_CUDA_CHECK(cudaStreamCreate(&stream));
-        std::cout << "FashionTracker.cpp: doInference 2" << std::endl;
+        fashion_log("FashionTracker.cpp: doInference 2");
 
 	// DMA the input to the GPU,  execute the batch asynchronously, and DMA it back:
 	FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex0], inputData, batchSize * INPUT_C * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));
@@ -129,7 +139,7 @@ static void doInference(IExecutionContext& context, float* inputData, float* inp
 	FASHION_CUDA_CHECK(cudaFree(buffers[outputIndex1]));
 	FASHION_CUDA_CHECK(cudaFree(buffers[outputIndex2]));
 	FASHION_CUDA_CHECK(cudaFree(buffers[outputIndex3]));
-        std::cout << "FashionTracker.cpp: doInference End" << std::endl;
+        fashion_log("FashionTracker.cpp: doInference End");
 }
 
 template<int OutC>
@@ -204,7 +214,7 @@ public:
 	// deserialization plugin implementation
 	virtual nvinfer1::IPlugin* createPlugin(const char* layerName, const nvinfer1::Weights* weights, int nbWeights) override
 	{
-                std::cout << "createPlugin1" << std::endl;
+                fashion_log("createPlugin1");
 		assert(isPlugin(layerName));
 		if (!strcmp(layerName, "ReshapeCTo2"))
 		{
@@ -239,7 +249,7 @@ public:
 
 	IPlugin* createPlugin(const char* layerName, const void* serialData, size_t serialLength) override
 	{
-                std::cout << "createPlugin2" << std::endl;
+                fashion_log("createPlugin2");
 		assert(isPlugin(layerName));
 		if (!strcmp(layerName, "ReshapeCTo2"))
 		{
@@ -304,12 +314,12 @@ ICudaEngine* FashionTracker::caffeToGIEModel()
 	ICaffeParser* parser = createCaffeParser();
 	parser->setPluginFactory(&pluginFactory);
 
-	std::cout << "Begin parsing model..." << std::endl;
+	fashion_log("Begin parsing model...");
 	const IBlobNameToTensor* blobNameToTensor = parser->parse(mCaffeProto.c_str(),
 		mCaffeTrainedModel.c_str(),
 		*network,
 		DataType::kFLOAT);
-	std::cout << "End parsing model..." << std::endl;
+	fashion_log("End parsing model...");
 	// specify which tensors are outputs
 	for (auto& s : outputs)
 		network->markOutput(*blobNameToTensor->find(s.c_str()));
@@ -318,10 +328,10 @@ ICudaEngine* FashionTracker::caffeToGIEModel()
 	builder->setMaxBatchSize(maxBatchSize);
 	builder->setMaxWorkspaceSize(32 << 20);	// we need about 6MB of scratch space for the plugin layer for batch size 5
 
-	std::cout << "Begin building engine..." << std::endl;
+	fashion_log("Begin building engine...");
 	ICudaEngine* engine = builder->buildCudaEngine(*network);
 	assert(engine);
-	std::cout << "End building engine..." << std::endl;
+	fashion_log("End building engine...");
 
 	// we don't need the network any more, and we can destroy the parser
 	network->destroy();
@@ -418,13 +428,13 @@ ICudaEngine* FashionTracker::createEngine()
     ICudaEngine *engine;
     
     std::string serializedEnginePath = mCaffeProto + ".bin";
-    std::cout << "Serialized engine path: " << serializedEnginePath.c_str() << std::endl;
+    fashion_log("Serialized engine path: " << serializedEnginePath.c_str());
     
     // create a GIE model from the caffe model and serialize it to a stream
     
     if (file_exists(serializedEnginePath))
     {
-        std::cout << "Found serialized TensorRT engine, deserializing..." << std::endl;
+        fashion_log("Found serialized TensorRT engine, deserializing...");
         char *gieModelStream{nullptr};
         size_t size{0};
         std::ifstream file(serializedEnginePath, std::ios::binary);
@@ -472,7 +482,7 @@ ICudaEngine* FashionTracker::createEngine()
 }
                     
                     
-FashionTracker::FashionTracker() : PackagedAsyncTracker(800, false),
+FashionTracker::FashionTracker() : PackagedAsyncTracker(800, true),
                     mCaffeProto("models/fashion/deploy.prototxt"),
                     mCaffeTrainedModel("models/fashion/snapshot.caffemodel")
 {
@@ -489,7 +499,7 @@ FashionTracker::~FashionTracker()
 }
                     
 std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat &frame) {
-    std::cout << "getDetections 0" << std::endl;
+    fashion_log("getDetections 0");
     const int N = 1;
     
     cv::Scalar mean(102.9801f, 115.9465f, 122.7717f);
@@ -498,7 +508,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     frameResized.convertTo(frameMinusMean, CV_32FC3);
     frameMinusMean -= mean;
     float* data = (float*)frameMinusMean.data;
-    std::cout << "getDetections 1" << std::endl;
+    fashion_log("getDetections 1");
     
     // host memory for outputs
     float* rois = new float[N * nmsMaxOut * 4];
@@ -506,7 +516,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     float* clsProbs = new float[N * nmsMaxOut * OUTPUT_CLS_SIZE];
    
     float imInfo[3] = {frame.rows, frame.cols, 1}; 
-    //float imInfo[3] = {frame.cols, frame.rows, 1}; 
+    
     // predicted bounding boxes
     float* predBBoxes = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
     
@@ -514,7 +524,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     doInference(*cudaContext, data, imInfo, bboxPreds, clsProbs, rois, N);
     
 
-    std::cout << "getDetections 2" << std::endl;
+    fashion_log("getDetections 2");
     
     // unscale back to raw image space
     for (int i = 0; i < N; ++i)
@@ -528,7 +538,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     
     const float nms_threshold = 0.3f;
     const float score_threshold = 0.8f;
-    std::cout << "getDetections 3" << std::endl;
+    fashion_log("getDetections 3");
     
     
     std::list<tf_tracking::Recognition> normalized_results;
@@ -560,7 +570,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
             for (unsigned k = 0; k < indices.size(); ++k)
             {
                 int idx = indices[k];
-                std::cout << "Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% " << std::endl;
+                fashion_log("Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% ");
                 
                 const float x1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4];
                 const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1];
@@ -572,14 +582,16 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
             }
         }
     }
-    std::cout << "getDetections 4" << std::endl;
+    fashion_log("getDetections 4");
     
     
     delete[] rois;
     delete[] bboxPreds;
     delete[] clsProbs;
     delete[] predBBoxes;
-    std::cout << "getDetections 5" << std::endl;
+
+
+    fashion_log("getDetections 5");
     
     return normalized_results;
 }
