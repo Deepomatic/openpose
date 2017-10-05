@@ -1,5 +1,8 @@
 #include <opencv2/highgui/highgui.hpp> // cv::imshow, cv::waitKey, cv::namedWindow, cv::setWindowProperty
 #include <openpose/gui/frameDisplayer.hpp>
+#include <openpose/core/PackageAsyncTracker.h>
+
+extern std::shared_ptr<PackageAsyncTracker> tracker;
 
 namespace op
 {
@@ -72,7 +75,9 @@ namespace op
     {
         try
         {
-            cv::imshow(mWindowName, frame);
+            cv::Mat newFrame = frame.clone();
+            tracker->drawDetection(newFrame);
+            cv::imshow(mWindowName, newFrame);
             if (waitKeyValue != -1)
                 cv::waitKey(waitKeyValue);
         }

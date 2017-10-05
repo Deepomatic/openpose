@@ -7,7 +7,9 @@
 #include <openpose/utilities/fastMath.hpp>
 #include <openpose/utilities/openCv.hpp>
 #include <openpose/pose/poseExtractorTensorRT.hpp>
+#include <openpose/core/PackageAsyncTracker.h>
 
+std::shared_ptr<PackageAsyncTracker> tracker(new PackageAsyncTracker());
 
 //#define TIMING_LOGS
 
@@ -101,6 +103,7 @@ namespace op
         {
             if (!mFashionDemo)
             {
+                tracker->pause();
                 // Security checks
                 if (inputNetData.empty())
                     error("Empty inputNetData.", __LINE__, __FUNCTION__, __FILE__);
@@ -158,7 +161,7 @@ namespace op
             }
             else // mFashionDemo == true
             {
-                
+                tracker->resume();
             }
         }
         catch (const std::exception& e)

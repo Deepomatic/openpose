@@ -146,7 +146,7 @@ ifneq ($(CPU_ONLY), 1)
 endif
 
 # TensorRT
-LIBRARIES += nvinfer nvcaffe_parser
+LIBRARIES += nvinfer nvinfer_plugin nvcaffe_parser tracker
 
 # LIBRARIES += glog gflags boost_system boost_filesystem m hdf5_hl hdf5 caffe
 LIBRARIES += glog gflags boost_system boost_filesystem m hdf5_hl hdf5
