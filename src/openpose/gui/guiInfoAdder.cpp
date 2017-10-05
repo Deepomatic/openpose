@@ -74,7 +74,7 @@ namespace op
             const cv::Scalar white{255, 255, 255};
             // Fps or s/gpu
             char charArrayAux[15];
-            std::snprintf(charArrayAux, 15, "%4.1f fps", mFps);
+            //std::snprintf(charArrayAux, 15, "%4.1f fps", mFps);
             // Recording inverse: sec/gpu
             // std::snprintf(charArrayAux, 15, "%4.2f s/gpu", (mFps != 0. ? mNumberGpus/mFps : 0.));
             putTextOnCvMat(cvOutputData, charArrayAux, {intRound(mOutputSize.x - mBorderMargin), mBorderMargin},
@@ -93,7 +93,7 @@ namespace op
             mLastElementRenderedCounter = fastMin(mLastElementRenderedCounter, std::numeric_limits<int>::max() - 5);
             mLastElementRenderedCounter++;
             // OpenPose name as well as help or part to show
-            putTextOnCvMat(cvOutputData, "OpenPose - " +
+            /*putTextOnCvMat(cvOutputData, "OpenPose - " +
                            (!mLastElementRenderedName.empty() ?
                                 mLastElementRenderedName : (mGuiEnabled ? "'h' for help" : "")),
                            {mBorderMargin, mBorderMargin}, white, false);
@@ -102,7 +102,7 @@ namespace op
                            {mBorderMargin, (int)(mOutputSize.y - mBorderMargin)}, white, false);
             // Number people
             putTextOnCvMat(cvOutputData, "People: " + std::to_string(poseKeypoints.getSize(0)),
-                           {(int)(mOutputSize.x - mBorderMargin), (int)(mOutputSize.y - mBorderMargin)}, white, true);
+                           {(int)(mOutputSize.x - mBorderMargin), (int)(mOutputSize.y - mBorderMargin)}, white, true);*/
         }
         catch (const std::exception& e)
         {
