@@ -6,13 +6,13 @@
 #include <unistd.h>
 #include <opencv2/imgproc/imgproc.hpp>
 
-class PackageAsyncTracker {
+class PackagedAsyncTracker {
 public:
-    PackageAsyncTracker(int width = 800, bool stop = true) {
+    PackagedAsyncTracker(int width = 800, bool stop = true) {
         _counter = 0;
         _width = width;
         _stop = stop;
-        _detection_thread = std::thread(&PackageAsyncTracker::detection_thread_main, this);
+        _detection_thread = std::thread(&PackagedAsyncTracker::detection_thread_main, this);
     }
 
     void onFrame(const cv::Mat &frame) {
@@ -103,7 +103,7 @@ public:
     }
 
 protected:
-    static void detection_thread_main(PackageAsyncTracker *ptr) {
+    static void detection_thread_main(PackagedAsyncTracker *ptr) {
         ptr->launch_detection_thread();
     }
 
@@ -121,46 +121,4 @@ protected:
     std::mutex _mtx;
 };
 
-
-
-
-/*
-
-#include <boost/filesystem.hpp>
-class ExampleFaceTracker : public PackageAsyncTracker {
-public:
-    ExampleFaceTracker(char **argv) : PackageAsyncTracker(800, false) {
-        boost::filesystem::path file = boost::filesystem::path(argv[0]).parent_path() / "../haarcascade_frontalface_alt.xml";
-        if(!_face_detector.load(file.string())){
-            LOG(FATAL) << "Error loading " << file.string();
-        };
-    }
-
-protected:
-
-    std::list<tf_tracking::Recognition> getDetections(const cv::Mat &frame) {
-        cv::Mat frame_gray;
-        cvtColor(frame, frame_gray, CV_BGR2GRAY);
-        equalizeHist(frame_gray, frame_gray);
-
-        std::vector<cv::Rect> faces;
-        _face_detector.detectMultiScale(frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, cv::Size(30, 30) );
-
-        std::list<tf_tracking::Recognition> normalized_results;
-        for (const auto &face : faces) {
-            const float x1 = face.x;
-            const float x2 = face.x + face.width;
-            const float y1 = face.y;
-            const float y2 = face.y + face.height;
-            normalized_results.emplace_back("face (category)", "me (label)", 1.0,
-                tf_tracking::BoundingBox(x1 / float(frame.cols), y1 / float(frame.rows), x2 / float(frame.cols), y2 / float(frame.rows)));
-        }
-        return normalized_results;
-    }
-
-private:
-    cv::CascadeClassifier _face_detector;
-};
-
-*/
 #endif

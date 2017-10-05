@@ -75,86 +75,19 @@ class LoggerFashion : public ILogger
         }
 } gLoggerFashion;
 
-struct PPM
-{
-	std::string magic, fileName;
-	int h, w, max;
-	uint8_t buffer[INPUT_C*INPUT_H*INPUT_W];
-};
-
 struct BBox
 {
 	float x1, y1, x2, y2;
 };
 
-std::string locateFile(const std::string& input)
+
+ICudaEngine* FashionTracker::caffeToGIEModel(PluginFactory *pluginFactory)
 {
-	std::string file = "data/samples/faster-rcnn/" + input;
-	struct stat info;
-	int i, MAX_DEPTH = 10;
-	for (i = 0; i < MAX_DEPTH && stat(file.c_str(), &info); i++)
-		file = "../" + file;
-
-    if (i == MAX_DEPTH)
-    {
-		file = std::string("data/faster-rcnn/") + input;
-		for (i = 0; i < MAX_DEPTH && stat(file.c_str(), &info); i++)
-			file = "../" + file;		
-    }
-
-	assert(i != MAX_DEPTH && "Make sure the data is set properly. Check README.txt");
-
-	return file;
-}
-
-// simple PPM (portable pixel map) reader
-void readPPMFile(const std::string& filename, PPM& ppm)
-{
-	ppm.fileName = filename;
-	std::ifstream infile(locateFile(filename), std::ifstream::binary);
-	infile >> ppm.magic >> ppm.w >> ppm.h >> ppm.max;
-	infile.seekg(1, infile.cur);
-	infile.read(reinterpret_cast<char*>(ppm.buffer), ppm.w * ppm.h * 3);
-}
-
-void writePPMFileWithBBox(const std::string& filename, PPM ppm, BBox bbox)
-{
-	std::ofstream outfile("./" + filename, std::ofstream::binary);
-	assert(!outfile.fail());
-	outfile << "P6" << "\n" << ppm.w << " " << ppm.h << "\n" << ppm.max << "\n";
-	auto round = [](float x)->int {return int(std::floor(x + 0.5f)); };
-	for (int x = int(bbox.x1); x < int(bbox.x2); ++x)
-	{
-		// bbox top border
-		ppm.buffer[(round(bbox.y1) * ppm.w + x) * 3] = 255;
-		ppm.buffer[(round(bbox.y1) * ppm.w + x) * 3 + 1] = 0;
-		ppm.buffer[(round(bbox.y1) * ppm.w + x) * 3 + 2] = 0;
-		// bbox bottom border
-		ppm.buffer[(round(bbox.y2) * ppm.w + x) * 3] = 255;
-		ppm.buffer[(round(bbox.y2) * ppm.w + x) * 3 + 1] = 0;
-		ppm.buffer[(round(bbox.y2) * ppm.w + x) * 3 + 2] = 0;
-	}
-	for (int y = int(bbox.y1); y < int(bbox.y2); ++y)
-	{
-		// bbox left border
-		ppm.buffer[(y * ppm.w + round(bbox.x1)) * 3] = 255;
-		ppm.buffer[(y * ppm.w + round(bbox.x1)) * 3 + 1] = 0;
-		ppm.buffer[(y * ppm.w + round(bbox.x1)) * 3 + 2] = 0;
-		// bbox right border
-		ppm.buffer[(y * ppm.w + round(bbox.x2)) * 3] = 255;
-		ppm.buffer[(y * ppm.w + round(bbox.x2)) * 3 + 1] = 0;
-		ppm.buffer[(y * ppm.w + round(bbox.x2)) * 3 + 2] = 0;
-	}
-	outfile.write(reinterpret_cast<char*>(ppm.buffer), ppm.w * ppm.h * 3);
-}
-
-void caffeToGIEModel(const std::string& deployFile,			// name for caffe prototxt
-	const std::string& modelFile,			// name for model 
-	const std::vector<std::string>& outputs,		// network outputs
-	unsigned int maxBatchSize,				// batch size - NB must be at least as large as the batch we want to run with)
-	nvcaffeparser1::IPluginFactory* pluginFactory,	// factory for plugin layers
-	IHostMemory **gieModelStream)			// output stream for the GIE model
-{
+    
+    // batch size
+    const int maxBatchSize = 1;
+    std::vector < std::string > outputs({ OUTPUT_BLOB_NAME0, OUTPUT_BLOB_NAME1, OUTPUT_BLOB_NAME2, OUTPUT_BLOB_NAME3 });
+    
 	// create the builder
 	IBuilder* builder = createInferBuilder(gLoggerFashion);
 
@@ -164,8 +97,8 @@ void caffeToGIEModel(const std::string& deployFile,			// name for caffe prototxt
 	parser->setPluginFactory(pluginFactory);
 
 	std::cout << "Begin parsing model..." << std::endl;
-	const IBlobNameToTensor* blobNameToTensor = parser->parse(locateFile(deployFile).c_str(),
-		locateFile(modelFile).c_str(),
+	const IBlobNameToTensor* blobNameToTensor = parser->parse(mCaffeProto.c_str(),
+		mCaffeTrainedModel.c_str(),
 		*network,
 		DataType::kFLOAT);
 	std::cout << "End parsing model..." << std::endl;
@@ -185,16 +118,13 @@ void caffeToGIEModel(const std::string& deployFile,			// name for caffe prototxt
 	// we don't need the network any more, and we can destroy the parser
 	network->destroy();
 	parser->destroy();
-
-	// serialize the engine, then close everything down
-	(*gieModelStream) = engine->serialize();
-
-	engine->destroy();
 	builder->destroy();
 	shutdownProtobufLibrary();
+    
+    return engine;
 }
 
-void doInference(IExecutionContext& context, float* inputData, float* inputImInfo, float* outputBboxPred, float* outputClsProb, float *outputRois, int batchSize)
+static void doInference(IExecutionContext& context, float* inputData, float* inputImInfo, float* outputBboxPred, float* outputClsProb, float *outputRois, int batchSize)
 {
 	const ICudaEngine& engine = context.getEngine();
 	// input and output buffer pointers that we pass to the engine - the engine requires exactly IEngine::getNbBindings(),
@@ -472,130 +402,169 @@ std::vector<int> nms(std::vector<std::pair<float, int> >& score_index, float* bb
 	}
 	return indices;
 }
+                    
+inline bool file_exists(const std::string& file_path) {
+    struct stat buffer;
+    return (stat(file_path.c_str(), &buffer) == 0);
+}
 
-
-int main(int argc, char** argv)
+ICudaEngine* FashionTracker::createEngine()
 {
-	// create a GIE model from the caffe model and serialize it to a stream
-	PluginFactory pluginFactory;
-	IHostMemory *gieModelStream{ nullptr };
-	// batch size
-	const int N = 2;
-	caffeToGIEModel("deploy.prototxt",
-		"snapshot.caffemodel",
-		std::vector < std::string > { OUTPUT_BLOB_NAME0, OUTPUT_BLOB_NAME1, OUTPUT_BLOB_NAME2, OUTPUT_BLOB_NAME3 },
-		N, &pluginFactory, &gieModelStream);
+    ICudaEngine *engine;
+    
+    std::string serializedEnginePath = mCaffeProto + ".bin";
+    std::cout << "Serialized engine path: " << serializedEnginePath.c_str() << std::endl;
+    
+    // create a GIE model from the caffe model and serialize it to a stream
+    PluginFactory pluginFactory;
+    
+    if (file_exists(serializedEnginePath))
+    {
+        std::cout << "Found serialized TensorRT engine, deserializing..." << std::endl;
+        IHostMemory *gieModelStream{nullptr};
+        size_t size{0};
+        std::ifstream file(serializedEnginePath, std::ios::binary);
+        if (file.good())
+        {
+            file.seekg(0, file.end);
+            size = file.tellg();
+            file.seekg(0, file.beg);
+            gieModelStream = new char[size];
+            assert(gieModelStream);
+            file.read(gieModelStream, size);
+            file.close();
+        }
+        
+        // deserialize the engine
+        IRuntime* runtime = createInferRuntime(gLoggerFashion);
+        ICudaEngine* engine = runtime->deserializeCudaEngine(gieModelStream->data(), gieModelStream->size(), &pluginFactory);
+        if (gieModelStream) delete [] gieModelStream;
+        runtime->destroy();
+    }
+    else
+    {
+        engine = caffeToGIEModel();
+        if (!engine)
+        {
+            std::cerr << "Engine could not be created" << std::endl;
+            return nullptr;
+        }
+        else // serialize engine
+        {  
+            std::ofstream p(serializedEnginePath);
+            if (!p)
+            {
+                std::cerr << "could not serialize engine" << std::endl;
+            }
+            IHostMemory *ptr = engine->serialize();
+            assert(ptr);
+            p.write(reinterpret_cast<const char*>(ptr->data()), ptr->size());
+            ptr->destroy();
+        }
+    }
+    pluginFactory.destroyPlugin();
+    return engine;
+}
+                    
+                    
+FashionTracker::FashionTracker() : PackagedAsyncTracker(800, false),
+                    mCaffeProto("fashion/deploy.prototxt"),
+                    mCaffeTrainedModel("fashion/snapshot.caffemodel")
+{
+    cudaEngine = createEngine();
+    cudaContext = engine->createExecutionContext();
+}
 
-	pluginFactory.destroyPlugin();
-	// read a random sample image
-	srand(unsigned(time(nullptr)));
-	// available images 
-	std::vector<std::string> imageList = { "000456.ppm",  "000542.ppm",  "001150.ppm", "001763.ppm", "004545.ppm" };
-	std::vector<PPM> ppms(N);
+FashionTracker::~FashionTracker()
+{
+    if (cudaContext)
+        cudaContext->destroy();
+    if (cudaEngine)
+        cudaEngine->destroy();
+}
+                    
+std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat &frame) {
+    const int N = 1;
+    
+    cv::Scalar mean({ 102.9801f, 115.9465f, 122.7717f });
+    cv::Mat frameMinusMean = frame.convertTo(CV_32FC3) - mean;
+    float* data = frameMinusMean.data;
+    
+    // host memory for outputs
+    float* rois = new float[N * nmsMaxOut * 4];
+    float* bboxPreds = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
+    float* clsProbs = new float[N * nmsMaxOut * OUTPUT_CLS_SIZE];
+    
+    // predicted bounding boxes
+    float* predBBoxes = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
+    
+    // run inference
+    doInference(cudaContext, data, imInfo, bboxPreds, clsProbs, rois, N);
+    
 
-	float imInfo[N * 3]; // input im_info	
-	std::random_shuffle(imageList.begin(), imageList.end(), [](int i) {return rand() % i; });
-	assert(ppms.size() <= imageList.size());
-	for (int i = 0; i < N; ++i)
-	{
-		readPPMFile(imageList[i], ppms[i]);
-		std::cout << "Reading " << ppms[i].fileName << std::endl;
-		imInfo[i * 3] = float(ppms[i].h);   // number of rows
-		imInfo[i * 3 + 1] = float(ppms[i].w); // number of columns
-		imInfo[i * 3 + 2] = 1;         // image scale
-	}
-
-	float* data = new float[N*INPUT_C*INPUT_H*INPUT_W];
-	// pixel mean used by the Faster R-CNN's author
-	float pixelMean[3]{ 102.9801f, 115.9465f, 122.7717f }; // also in BGR order
-	for (int i = 0, volImg = INPUT_C*INPUT_H*INPUT_W; i < N; ++i)
-	{
-		for (int c = 0; c < INPUT_C; ++c)
-		{
-			// the color image to input should be in BGR order
-			for (unsigned j = 0, volChl = INPUT_H*INPUT_W; j < volChl; ++j)
-				data[i*volImg + c*volChl + j] = float(ppms[i].buffer[j*INPUT_C + 2 - c]) - pixelMean[c];
-		}
-	}
-
-	// deserialize the engine 
-	IRuntime* runtime = createInferRuntime(gLoggerFashion);
-	ICudaEngine* engine = runtime->deserializeCudaEngine(gieModelStream->data(), gieModelStream->size(), &pluginFactory);
-
-	IExecutionContext *context = engine->createExecutionContext();
-
-
-	// host memory for outputs 
-	float* rois = new float[N * nmsMaxOut * 4];
-	float* bboxPreds = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
-	float* clsProbs = new float[N * nmsMaxOut * OUTPUT_CLS_SIZE];
-
-	// predicted bounding boxes
-	float* predBBoxes = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
-
-	// run inference
-	doInference(*context, data, imInfo, bboxPreds, clsProbs, rois, N);
-
-	// destroy the engine
-	context->destroy();
-	engine->destroy();
-	runtime->destroy();
-	pluginFactory.destroyPlugin();
-
-	// unscale back to raw image space
-	for (int i = 0; i < N; ++i)
-	{
-		float * rois_offset = rois + i * nmsMaxOut * 4;
-		for (int j = 0; j < nmsMaxOut * 4 && imInfo[i * 3 + 2] != 1; ++j)
-			rois_offset[j] /= imInfo[i * 3 + 2];
-	}
-
-	bboxTransformInvAndClip(rois, bboxPreds, predBBoxes, imInfo, N, nmsMaxOut, OUTPUT_CLS_SIZE);
-
-	const float nms_threshold = 0.3f;
-	const float score_threshold = 0.8f;
-
-	for (int i = 0; i < N; ++i)
-	{
-		float *bbox = predBBoxes + i * nmsMaxOut * OUTPUT_BBOX_SIZE;
-		float *scores = clsProbs + i * nmsMaxOut * OUTPUT_CLS_SIZE;
-		for (int c = 1; c < OUTPUT_CLS_SIZE; ++c) // skip the background
-		{
-			std::vector<std::pair<float, int> > score_index;
-			for (int r = 0; r < nmsMaxOut; ++r)
-			{
-				if (scores[r*OUTPUT_CLS_SIZE + c] > score_threshold)
-				{
-					score_index.push_back(std::make_pair(scores[r*OUTPUT_CLS_SIZE + c], r));
-					std::stable_sort(score_index.begin(), score_index.end(),
-						[](const std::pair<float, int>& pair1,
-							const std::pair<float, int>& pair2) {
-						return pair1.first > pair2.first;
-					});
-				}
-			}
-
-			// apply NMS algorithm
-			std::vector<int> indices = nms(score_index, bbox, c, OUTPUT_CLS_SIZE, nms_threshold);
-			// Show results
-			for (unsigned k = 0; k < indices.size(); ++k)
-			{
-				int idx = indices[k];
-				std::string storeName = CLASSES[c] + "-" + std::to_string(scores[idx*OUTPUT_CLS_SIZE + c]) + ".ppm";
-				std::cout << "Detected " << CLASSES[c] << " in " << ppms[i].fileName << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% "
-					<< " (Result stored in " << storeName << ")." << std::endl;
-
-				BBox b{ bbox[idx*OUTPUT_BBOX_SIZE + c * 4], bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1], bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 2], bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3] };
-				writePPMFileWithBBox(storeName, ppms[i], b);
-			}
-		}
-	}
-
-
-	delete[] data;
-	delete[] rois;
-	delete[] bboxPreds;
-	delete[] clsProbs;
-	delete[] predBBoxes;
-	return 0;
+    
+    // unscale back to raw image space
+    for (int i = 0; i < N; ++i)
+    {
+        float * rois_offset = rois + i * nmsMaxOut * 4;
+        for (int j = 0; j < nmsMaxOut * 4 && imInfo[i * 3 + 2] != 1; ++j)
+            rois_offset[j] /= imInfo[i * 3 + 2];
+    }
+    
+    bboxTransformInvAndClip(rois, bboxPreds, predBBoxes, imInfo, N, nmsMaxOut, OUTPUT_CLS_SIZE);
+    
+    const float nms_threshold = 0.3f;
+    const float score_threshold = 0.8f;
+    
+    
+    std::list<tf_tracking::Recognition> normalized_results;
+    
+    for (int i = 0; i < N; ++i)
+    {
+        float *bbox = predBBoxes + i * nmsMaxOut * OUTPUT_BBOX_SIZE;
+        float *scores = clsProbs + i * nmsMaxOut * OUTPUT_CLS_SIZE;
+        for (int c = 1; c < OUTPUT_CLS_SIZE; ++c) // skip the background
+        {
+            std::vector<std::pair<float, int> > score_index;
+            for (int r = 0; r < nmsMaxOut; ++r)
+            {
+                if (scores[r*OUTPUT_CLS_SIZE + c] > score_threshold)
+                {
+                    score_index.push_back(std::make_pair(scores[r*OUTPUT_CLS_SIZE + c], r));
+                    std::stable_sort(score_index.begin(), score_index.end(),
+                                     [](const std::pair<float, int>& pair1,
+                                        const std::pair<float, int>& pair2) {
+                                         return pair1.first > pair2.first;
+                                     });
+                }
+            }
+            
+            // apply NMS algorithm
+            std::vector<int> indices = nms(score_index, bbox, c, OUTPUT_CLS_SIZE, nms_threshold);
+            // Show results
+            for (unsigned k = 0; k < indices.size(); ++k)
+            {
+                int idx = indices[k];
+                std::cout << "Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% "
+                << " (Result stored in " << storeName << ")." << std::endl;
+                
+                const float x1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4];
+                const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1];
+                const float x2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 2];
+                const float y2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3];
+                normalized_results.emplace_back("fashion", CLASSES[c],
+                                                scores[idx*OUTPUT_CLS_SIZE + c],
+                                                tf_tracking::BoundingBox(x1 / float(frame.cols), y1 / float(frame.rows), x2 / float(frame.cols), y2 / float(frame.rows)));
+            }
+        }
+    }
+    
+    
+    delete[] data;
+    delete[] rois;
+    delete[] bboxPreds;
+    delete[] clsProbs;
+    delete[] predBBoxes;
+    
+    return normalized_results;
 }

@@ -1,8 +1,8 @@
 #include <opencv2/highgui/highgui.hpp> // cv::imshow, cv::waitKey, cv::namedWindow, cv::setWindowProperty
 #include <openpose/gui/frameDisplayer.hpp>
-#include <openpose/core/PackageAsyncTracker.h>
+#include <openpose/core/PackagedAsyncTracker.h>
 
-extern std::shared_ptr<PackageAsyncTracker> tracker;
+extern std::shared_ptr<PackagedAsyncTracker> tracker;
 
 namespace op
 {

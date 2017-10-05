@@ -7,9 +7,9 @@
 #include <openpose/core/common.hpp>
 #include <openpose/core/datum.hpp>
 #include <openpose/producer/producer.hpp>
-#include <openpose/core/PackageAsyncTracker.h>
+#include <openpose/core/PackagedAsyncTracker.h>
 
-extern std::shared_ptr<PackageAsyncTracker> tracker;
+extern std::shared_ptr<PackagedAsyncTracker> tracker;
 
 namespace op
 {
