@@ -7,9 +7,9 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <openpose/core/PackagedAsyncTracker.h>
 
+#include "NvCaffeParser.h"
+#include "NvInferPlugin.h"
 
-
-class PluginFactory;
 
 class FashionTracker : public PackagedAsyncTracker {
 public:
@@ -23,10 +23,6 @@ protected:
 private:
     const std::string mCaffeProto;
     const std::string mCaffeTrainedModel;
-    
-    
-    ICudaEngine* FashionTracker::createEngine();
-    ICudaEngine* caffeToGIEModel(PluginFactory *pluginFactory);
     
     // TensorRT stuff
     nvinfer1::ICudaEngine* cudaEngine;

@@ -7,9 +7,9 @@
 #include <openpose/utilities/fastMath.hpp>
 #include <openpose/utilities/openCv.hpp>
 #include <openpose/pose/poseExtractorTensorRT.hpp>
-#include <openpose/core/PackagedAsyncTracker.h>
+#include <openpose/core/FashionTracker.h>
 
-std::shared_ptr<PackagedAsyncTracker> tracker(new PackagedAsyncTracker());
+std::shared_ptr<PackagedAsyncTracker> tracker(new FashionTracker());
 
 //#define TIMING_LOGS
 
