@@ -19,7 +19,7 @@ public:
 protected:
     
     std::list<tf_tracking::Recognition> getDetections(const cv::Mat &frame);
-    
+    void doInference(float* inputData, float* inputImInfo, float* outputBboxPred, float* outputClsProb, float *outputRois, int batchSize);
 private:
     const std::string mCaffeProto;
     const std::string mCaffeTrainedModel;
@@ -27,7 +27,8 @@ private:
     // TensorRT stuff
     nvinfer1::ICudaEngine* cudaEngine;
     nvinfer1::IExecutionContext* cudaContext;
-    nvinfer1::cudaStream_t* stream;
+    cudaStream_t stream;
+    void* buffers[6];
     nvinfer1::ICudaEngine* caffeToGIEModel();
     nvinfer1::ICudaEngine* createEngine();
     int inputIndex0;

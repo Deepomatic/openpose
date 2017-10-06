@@ -439,7 +439,6 @@ FashionTracker::FashionTracker() : PackagedAsyncTracker(INPUT_W, true),
     // input and output buffer pointers that we pass to the engine - the engine requires exactly IEngine::getNbBindings(),
     // of these, but in this case we know that there is exactly 2 inputs and 4 outputs.
     assert(cudaEngine->getNbBindings() == 6);
-    void* buffers[6];
     
     // In order to bind the buffers, we need to know the names of the input and output tensors.
     // note that indices are guaranteed to be less than IEngine::getNbBindings()
@@ -450,7 +449,7 @@ FashionTracker::FashionTracker() : PackagedAsyncTracker(INPUT_W, true),
     outputIndex2 = cudaEngine->getBindingIndex(OUTPUT_BLOB_NAME2);
     outputIndex3 = cudaEngine->getBindingIndex(OUTPUT_BLOB_NAME3);
     
-    
+    int batchSize = 1; 
     // create GPU buffers and a stream
     FASHION_CUDA_CHECK(cudaMalloc(&buffers[inputIndex0], batchSize * INPUT_C * INPUT_H * INPUT_W * sizeof(float)));   // data
     FASHION_CUDA_CHECK(cudaMalloc(&buffers[inputIndex1], batchSize * IM_INFO_SIZE * sizeof(float)));                  // im_info
@@ -459,7 +458,7 @@ FashionTracker::FashionTracker() : PackagedAsyncTracker(INPUT_W, true),
     FASHION_CUDA_CHECK(cudaMalloc(&buffers[outputIndex2], batchSize * nmsMaxOut * 4 * sizeof(float)));                // rois
     FASHION_CUDA_CHECK(cudaMalloc(&buffers[outputIndex3], batchSize * sizeof(float)));                                // count
     
-    FASHION_CUDA_CHECK(cudaStreamCreate(stream));
+    FASHION_CUDA_CHECK(cudaStreamCreate(&stream));
 }
 
 FashionTracker::~FashionTracker()
@@ -535,7 +534,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     float* predBBoxes = new float[N * nmsMaxOut * OUTPUT_BBOX_SIZE];
     
     // run inference
-    doInference(*cudaContext, data, imInfo, bboxPreds, clsProbs, rois, N);
+    doInference(data, imInfo, bboxPreds, clsProbs, rois, N);
     
 
     fashion_log("getDetections 2");
@@ -624,7 +623,7 @@ void FashionTracker::doInference(float* inputData, float* inputImInfo, float* ou
     // DMA the input to the GPU,  execute the batch asynchronously, and DMA it back:
     FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex0], inputData, batchSize * INPUT_C * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));
     FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex1], inputImInfo, batchSize * IM_INFO_SIZE * sizeof(float), cudaMemcpyHostToDevice, stream));
-    context.enqueue(batchSize, buffers, stream, nullptr);
+    cudaContext->enqueue(batchSize, buffers, stream, nullptr);
     FASHION_CUDA_CHECK(cudaMemcpyAsync(outputBboxPred, buffers[outputIndex0], batchSize * nmsMaxOut * OUTPUT_BBOX_SIZE * sizeof(float), cudaMemcpyDeviceToHost, stream));
     FASHION_CUDA_CHECK(cudaMemcpyAsync(outputClsProb, buffers[outputIndex1], batchSize * nmsMaxOut * OUTPUT_CLS_SIZE * sizeof(float), cudaMemcpyDeviceToHost, stream));
     FASHION_CUDA_CHECK(cudaMemcpyAsync(outputRois, buffers[outputIndex2], batchSize * nmsMaxOut * 4 * sizeof(float), cudaMemcpyDeviceToHost, stream));
