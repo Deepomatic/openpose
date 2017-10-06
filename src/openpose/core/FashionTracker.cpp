@@ -619,7 +619,7 @@ void FashionTracker::doInference(float* inputData, float* inputImInfo, float* ou
 {
     
     fashion_log("FashionTracker.cpp: doInference");
-    usleep(500000); 
+    //usleep(500000); 
      
     // DMA the input to the GPU,  execute the batch asynchronously, and DMA it back:
     FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex0], inputData, batchSize * INPUT_C * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));

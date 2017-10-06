@@ -94,6 +94,7 @@ public:
                         _tracker.trackObjects(objects, y_frame, counter);
                     }
                 }
+                usleep(300000);
             }
             while(_stop) {
                 usleep(1000);
