@@ -27,8 +27,15 @@ private:
     // TensorRT stuff
     nvinfer1::ICudaEngine* cudaEngine;
     nvinfer1::IExecutionContext* cudaContext;
+    nvinfer1::cudaStream_t* stream;
     nvinfer1::ICudaEngine* caffeToGIEModel();
     nvinfer1::ICudaEngine* createEngine();
+    int inputIndex0;
+    int inputIndex1;
+    int outputIndex0;
+    int outputIndex1;
+    int outputIndex2;
+    int outputIndex3;
 };
 
 
