@@ -49,6 +49,7 @@ static const int OUTPUT_CLS_SIZE = 16;
 static const int OUTPUT_BBOX_SIZE = OUTPUT_CLS_SIZE * 4;
 
 const std::string CLASSES[OUTPUT_CLS_SIZE]{"background", "sweater", "hat", "dress", "bag", "jacket-coat", "shoe", "pants", "suit", "skirt", "sunglasses", "romper", "top-shirt", "jumpsuit", "shorts", "swimwear"};
+const float THRESHOLDS[OUTPUT_CLS_SIZE]{1.0f, 0.611f, 0.810f, 0.595f, 0.907f, 0.678f, 0.689f, 0.535f, 0.504f, 0.658f, 0.347f, 0.779f, 0.647f, 0.771f, 0.320f, 0.323f };
 
 const char* INPUT_BLOB_NAME0 = "data";
 const char* INPUT_BLOB_NAME1 = "im_info";
@@ -550,7 +551,6 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     bboxTransformInvAndClip(rois, bboxPreds, predBBoxes, imInfo, N, nmsMaxOut, OUTPUT_CLS_SIZE);
     
     const float nms_threshold = 0.3f;
-    const float score_threshold = 0.9f;
     fashion_log("getDetections 3");
     
     
@@ -565,7 +565,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
             std::vector<std::pair<float, int> > score_index;
             for (int r = 0; r < nmsMaxOut; ++r)
             {
-                if (scores[r*OUTPUT_CLS_SIZE + c] > score_threshold)
+                if (scores[r*OUTPUT_CLS_SIZE + c] > THRESHOLDS[c])
                 {
 
                     score_index.push_back(std::make_pair(scores[r*OUTPUT_CLS_SIZE + c], r));
