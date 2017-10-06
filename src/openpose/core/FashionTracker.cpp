@@ -42,8 +42,8 @@ using namespace plugin;
 
 // stuff we know about the network and the caffe input/output blobs
 static const int INPUT_C = 3;
-static const int INPUT_H = 375;
-static const int INPUT_W = 500;
+static const int INPUT_H = 240;
+static const int INPUT_W = 320;
 static const int IM_INFO_SIZE = 3;
 static const int OUTPUT_CLS_SIZE = 16;
 static const int OUTPUT_BBOX_SIZE = OUTPUT_CLS_SIZE * 4;
@@ -603,14 +603,19 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
                 int idx = indices[k];
                 std::cout << "Detected " << CLASSES[c] << " with confidence " << scores[idx*OUTPUT_CLS_SIZE + c] * 100.0f << "% " << std::endl;
                
-                const float ratio = (float)INPUT_W / (float)INPUT_H; 
+                const float ratioW = (float)frame.rows / (float)frameMinusMean.cols;
+                const float ratioH = (float)frame.rows / (float)frameMinusMean.rows; 
                 const float x1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4];
-                const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1] * ratio;
+                const float y1 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 1];
                 const float x2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 2];
-                const float y2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3] * ratio;
+                const float y2 = bbox[idx*OUTPUT_BBOX_SIZE + c * 4 + 3];
                 normalized_results.emplace_back("fashion", CLASSES[c],
                                                 scores[idx*OUTPUT_CLS_SIZE + c],
-                                                tf_tracking::BoundingBox(x1 / float(frame.cols), y1 / float(frame.rows), x2 / float(frame.cols), y2 / float(frame.rows)));
+                                                tf_tracking::BoundingBox(
+                                                    x1 * ratioW / float(frame.cols),
+                                                    y1 * ratioH / float(frame.rows),
+                                                    x2 * ratioW / float(frame.cols),
+                                                    y2 * ratioH / float(frame.rows)));
             }
         }
     }
