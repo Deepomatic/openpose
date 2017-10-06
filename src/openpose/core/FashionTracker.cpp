@@ -42,8 +42,8 @@ using namespace plugin;
 
 // stuff we know about the network and the caffe input/output blobs
 static const int INPUT_C = 3;
-static const int INPUT_H = 240;
-static const int INPUT_W = 320;
+static const int INPUT_H = 480;
+static const int INPUT_W = 640;
 static const int IM_INFO_SIZE = 3;
 static const int OUTPUT_CLS_SIZE = 16;
 static const int OUTPUT_BBOX_SIZE = OUTPUT_CLS_SIZE * 4;
@@ -550,7 +550,7 @@ std::list<tf_tracking::Recognition> FashionTracker::getDetections(const cv::Mat 
     bboxTransformInvAndClip(rois, bboxPreds, predBBoxes, imInfo, N, nmsMaxOut, OUTPUT_CLS_SIZE);
     
     const float nms_threshold = 0.3f;
-    const float score_threshold = 0.8f;
+    const float score_threshold = 0.9f;
     fashion_log("getDetections 3");
     
     
@@ -619,7 +619,8 @@ void FashionTracker::doInference(float* inputData, float* inputImInfo, float* ou
 {
     
     fashion_log("FashionTracker.cpp: doInference");
-    
+    usleep(500000); 
+     
     // DMA the input to the GPU,  execute the batch asynchronously, and DMA it back:
     FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex0], inputData, batchSize * INPUT_C * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));
     FASHION_CUDA_CHECK(cudaMemcpyAsync(buffers[inputIndex1], inputImInfo, batchSize * IM_INFO_SIZE * sizeof(float), cudaMemcpyHostToDevice, stream));
