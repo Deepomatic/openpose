@@ -82,7 +82,7 @@ namespace op
             ImplNetTensorRT(const std::string& caffeProto, const std::string& caffeTrainedModel, const int gpuId,
                          const bool enableGoogleLogging, const std::string& lastBlobName) :
                 mGpuId{gpuId},
-                mCaffeProto{caffeProto + std::string("_368x656")}, // TODO, no size, how to proceed ?
+                mCaffeProto{caffeProto + std::string("_96x128")}, // TODO, no size, how to proceed ?
                 mCaffeTrainedModel{caffeTrainedModel},
                 mLastBlobName{lastBlobName}
             {

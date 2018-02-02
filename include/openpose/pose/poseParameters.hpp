@@ -40,24 +40,33 @@ namespace op
     #define POSE_COCO_PAIRS_RENDER_GPU                      {1,2,   1,5,   2,3,   3,4,   5,6,   6,7,   1,8,   8,9,   9,10,  1,11,  11,12, 12,13,  1,0,   0,14, 14,16,  0,15, 15,17}
     const std::vector<unsigned int> POSE_COCO_PAIRS_RENDER  {POSE_COCO_PAIRS_RENDER_GPU};
     const std::vector<unsigned int> POSE_COCO_PAIRS         {1,2,   1,5,   2,3,   3,4,   5,6,   6,7,   1,8,   8,9,   9,10,  1,11,  11,12, 12,13,  1,0,   0,14, 14,16,  0,15, 15,17,  2,16,  5,17};
+    #define PINK 248.f,   158.f,   255.f
+    #define PURPLE 7.f,   0.f,   255.f
+    #define LIGHT_BLUE 55.f,   222.f,   255.f
+    #define BLUE 0.f,   143.f,   255.f
+    #define ORANGE 255.f,   154.f,   85.f
+    #define RED 237.f,   75.f,   73.f
+    #define LIGHT_GREEN 114.f,   254.f,   142.f
+    #define GREEN 2.f,   200.f,   161.f
     #define POSE_COCO_COLORS_RENDER_GPU \
-        255.f,     0.f,    85.f, \
-        255.f,     0.f,     0.f, \
-        255.f,    85.f,     0.f, \
-        255.f,   170.f,     0.f, \
-        255.f,   255.f,     0.f, \
-        170.f,   255.f,     0.f, \
-         85.f,   255.f,     0.f, \
-          0.f,   255.f,     0.f, \
-          0.f,   255.f,    85.f, \
-          0.f,   255.f,   170.f, \
-          0.f,   255.f,   255.f, \
-          0.f,   170.f,   255.f, \
-          0.f,    85.f,   255.f, \
-          0.f,     0.f,   255.f, \
-        255.f,     0.f,   170.f, \
-        170.f,     0.f,   255.f, \
-        255.f,     0.f,   255.f, \
+        BLUE, \
+        BLUE, \
+        PURPLE, \
+        ORANGE, \
+        RED, \
+        PINK, \
+        LIGHT_GREEN, \
+        GREEN, \
+        LIGHT_GREEN, \
+        GREEN, \
+        LIGHT_GREEN, \
+        ORANGE, \
+        RED, \
+        ORANGE, \
+        LIGHT_BLUE, \
+        LIGHT_BLUE, \
+        LIGHT_BLUE, \
+        LIGHT_BLUE, \
          85.f,     0.f,   255.f
     const std::vector<float> POSE_COCO_COLORS_RENDER{POSE_COCO_COLORS_RENDER_GPU};
     // MPI
