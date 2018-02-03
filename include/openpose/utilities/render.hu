@@ -102,8 +102,15 @@ namespace op
                             const auto judge = A * A / aSqrt + B * B / bSqrt;
                             const auto minV = 0.f;
                             const auto maxV = 1.f;
+                            const float factor = ((x - xA) * (x - xA) + (y - yA) * (y - yA)) / (aSqrt * 1.41f);
                             if (minV <= judge && judge <= maxV)
-                                addColorWeighted(r, g, b, &rgbColorsPtr[(partB%numberColors)*3], alphaColorToAdd); // Before used partPair vs partB
+                            {
+                                r = (1-factor) * 199.f + factor * 7.f;
+                                g = (1 - factor) * 114.f + factor * 0.f;
+                                b = (1 - factor) * 255.f + factor * 255.f;
+
+                            }
+                                //addColorWeighted(r, g, b, &rgbColorsPtr[(partPair%numberColors)*3], alphaColorToAdd); // Before used partPair vs partB
                         }
                     }
 
