@@ -48,7 +48,33 @@ namespace op
     #define RED 237.f,   75.f,   73.f
     #define LIGHT_GREEN 114.f,   254.f,   142.f
     #define GREEN 2.f,   200.f,   161.f
+    #define BLUE1 7.f, 0.f, 255.f
+    #define BLUE2 55.2f, 38.6f, 255.f 
+    #define BLUE3 103.4f, 70.2f, 255.f
+    #define BLUE4 151.6f, 101.8f, 255.f
+    #define BLUE5 199.8f, 133.4f, 255.f
+    #define BLUE6 248.f, 158.f, 255.f
     #define POSE_COCO_COLORS_RENDER_GPU \
+        BLUE5, \
+        BLUE4, \
+        BLUE3, \
+        BLUE2, \
+        BLUE1, \
+        BLUE3, \
+        BLUE2, \
+        BLUE1, \
+        BLUE3, \
+        BLUE2, \
+        BLUE1, \
+        BLUE3, \
+        BLUE2, \
+        BLUE1, \
+        BLUE6, \
+        BLUE6, \
+        BLUE6, \
+        BLUE6, \
+         85.f,     0.f,   255.f
+    /*#define POSE_COCO_COLORS_RENDER_GPU \
         BLUE, \
         BLUE, \
         PURPLE, \
@@ -67,7 +93,7 @@ namespace op
         LIGHT_BLUE, \
         LIGHT_BLUE, \
         LIGHT_BLUE, \
-         85.f,     0.f,   255.f
+         85.f,     0.f,   255.f*/
     const std::vector<float> POSE_COCO_COLORS_RENDER{POSE_COCO_COLORS_RENDER_GPU};
     // MPI
     const std::map<unsigned int, std::string> POSE_MPI_BODY_PARTS {
