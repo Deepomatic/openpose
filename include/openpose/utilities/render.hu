@@ -105,9 +105,10 @@ namespace op
                             const float factor = ((x - xA) * (x - xA) + (y - yA) * (y - yA)) / (aSqrt * 1.41f);
                             if (minV <= judge && judge <= maxV)
                             {
-                                r = (1-factor) * 199.f + factor * 7.f;
-                                g = (1 - factor) * 114.f + factor * 0.f;
-                                b = (1 - factor) * 255.f + factor * 255.f;
+                                const auto sign = rgbColorsPtr[partA*3] < rgbColorsPtr[partB*3] ? 1.f : -1.f;
+                                r = rgbColorsPtr[partA*3] + sign * factor * 38.4f;
+                                g = rgbColorsPtr[partA*3+1] + sign * factor * 22.8f;
+                                b = 255.f;
 
                             }
                                 //addColorWeighted(r, g, b, &rgbColorsPtr[(partPair%numberColors)*3], alphaColorToAdd); // Before used partPair vs partB
