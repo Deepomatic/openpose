@@ -49,11 +49,11 @@ namespace op
     #define LIGHT_GREEN 114.f,   254.f,   142.f
     #define GREEN 2.f,   200.f,   161.f
     #define BLUE1 7.f, 0.f, 255.f
-    #define BLUE2 55.2f, 38.6f, 255.f 
-    #define BLUE3 103.4f, 70.2f, 255.f
-    #define BLUE4 151.6f, 101.8f, 255.f
-    #define BLUE5 199.8f, 133.4f, 255.f
-    #define BLUE6 248.f, 158.f, 255.f
+    #define BLUE2 45.4f, 22.8f, 255.f 
+    #define BLUE3 83.8f, 45.6f, 255.f
+    #define BLUE4 122.2f, 68.4f, 255.f
+    #define BLUE5 160.6f, 91.2f, 255.f
+    #define BLUE6 199.f, 114.f, 255.f
     #define POSE_COCO_COLORS_RENDER_GPU \
         BLUE5, \
         BLUE4, \
