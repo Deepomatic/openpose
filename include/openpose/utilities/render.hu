@@ -106,12 +106,12 @@ namespace op
                             if (minV <= judge && judge <= maxV)
                             {
                                 const auto sign = rgbColorsPtr[partA*3] < rgbColorsPtr[partB*3] ? 1.f : -1.f;
-                                r = rgbColorsPtr[partA*3] + sign * factor * 38.4f;
-                                g = rgbColorsPtr[partA*3+1] + sign * factor * 22.8f;
-                                b = 255.f;
+                                //r = rgbColorsPtr[partA*3] + sign * factor * 38.4f;
+                                //g = rgbColorsPtr[partA*3+1] + sign * factor * 22.8f;
+                                //b = 255.f;
+                                addColorWeighted(r, g, b, &rgbColorsPtr[(partPair%numberColors)*3], alphaColorToAdd); // Before used partPair vs partB
 
                             }
-                                //addColorWeighted(r, g, b, &rgbColorsPtr[(partPair%numberColors)*3], alphaColorToAdd); // Before used partPair vs partB
                         }
                     }
 

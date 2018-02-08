@@ -62,7 +62,11 @@ namespace op
                                const std::string& elementRenderedName)
     {
         try
-        {/*
+        {
+            // deepomatic crop image
+            cv::Rect roi = cv::Rect(0, 60, cvOutputData.cols, 360); 
+            cvOutputData = cvOutputData(roi);
+ /*
             // Security checks
             if (cvOutputData.empty())
                 error("Wrong input element (empty cvOutputData).", __LINE__, __FUNCTION__, __FILE__);
