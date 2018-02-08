@@ -62,7 +62,7 @@ namespace op
                                const std::string& elementRenderedName)
     {
         try
-        {
+        {/*
             // Security checks
             if (cvOutputData.empty())
                 error("Wrong input element (empty cvOutputData).", __LINE__, __FUNCTION__, __FILE__);
@@ -103,7 +103,7 @@ namespace op
             // Number people
             putTextOnCvMat(cvOutputData, "People: " + std::to_string(numberPeople),
                            {(int)(cvOutputData.cols - borderMargin), (int)(cvOutputData.rows - borderMargin)},
-                           white, true);
+                           white, true);*/
         }
         catch (const std::exception& e)
         {
