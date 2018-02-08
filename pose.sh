@@ -1,1 +1,1 @@
-./build/examples/openpose/openpose.bin -camera_resolution 640x480 -alpha_pose 1
+./build/examples/openpose/openpose.bin -num_gpu 2 -alpha_pose 1
